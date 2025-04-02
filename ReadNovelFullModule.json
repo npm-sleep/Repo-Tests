@@ -2,9 +2,9 @@
   "id": "readnovelfull",
   "name": "ReadNovelFull",
   "version": "1.0.0",
-  "author": "Rida",
+  "author": "vizor",
   "description": "ReadNovelFull source for web novels",
   "supportedLanguages": ["en"],
   "isEnabled": true,
-  "scriptUrl": "ReadNovelFull.js"
+  "scriptUrl": "https://raw.githubusercontent.com/npm-sleep/Repo-Tests/refs/heads/main/ReadNovelFull.js"
 } 
