@@ -1,0 +1,10 @@
+{
+  "id": "readnovelfull",
+  "name": "ReadNovelFull",
+  "version": "1.0.0",
+  "author": "Rida",
+  "description": "ReadNovelFull source for web novels",
+  "supportedLanguages": ["en"],
+  "isEnabled": true,
+  "scriptUrl": "ReadNovelFull.js"
+} 
