@@ -1,7 +1,7 @@
 {
   "id": "readnovelfull",
   "name": "ReadNovelFull",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "author": "vizor",
   "description": "ReadNovelFull source for web novels",
   "supportedLanguages": ["en"],
