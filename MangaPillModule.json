@@ -1,7 +1,7 @@
 {
   "id": "mangapill",
   "name": "MangaPill",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "author": "AI Assistant (Adapted for Rida)",
   "description": "Search and read manga from MangaPill.com.",
   "supportedLanguages": ["en"],
