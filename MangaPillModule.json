@@ -6,5 +6,5 @@
   "description": "Search and read manga from MangaPill.com.",
   "supportedLanguages": ["en"],
   "isEnabled": true,
-  "scriptUrl": "PASTE_RAW_GITHUB_URL_TO_MANGAPILL_SCRIPT_HERE"
+  "scriptUrl": "https://raw.githubusercontent.com/npm-sleep/Repo-Tests/refs/heads/main/mangapills.js"
 }
