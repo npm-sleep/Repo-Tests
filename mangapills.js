@@ -2,6 +2,7 @@
  * Rida Module for MangaPill.com
  *
  * Allows searching and reading manga from MangaPill.
+ * Conforms to the Rida single-file module structure.
  */
 const mangapillModule = (fetch) => {
   const baseURL = 'https://mangapill.com';
@@ -24,32 +25,29 @@ const mangapillModule = (fetch) => {
 
    // Simple HTML entity decoder
    const decodeEntities = (encodedString) => {
+    if (!encodedString) return '';
     const translate_re = /&(nbsp|amp|quot|lt|gt);/g;
     const translate = {
-        "nbsp": " ",
-        "amp" : "&",
-        "quot": "\"",
-        "lt"  : "<",
-        "gt"  : ">"
+        "nbsp": " ", "amp" : "&", "quot": "\"", "lt"  : "<", "gt"  : ">"
     };
-    return encodedString.replace(translate_re, function(match, entity) {
-        return translate[entity];
-    }).replace(/&#(\d+);/gi, function(match, numStr) {
-        const num = parseInt(numStr, 10);
-        return String.fromCharCode(num);
-    });
+    let decoded = encodedString.replace(translate_re, (match, entity) => translate[entity]);
+     // Numerical entities
+    decoded = decoded.replace(/&#(\d+);/gi, (match, numStr) => String.fromCharCode(parseInt(numStr, 10)));
+     // Hex entities
+    decoded = decoded.replace(/&#x([0-9A-Fa-f]+);/gi, (match, hexStr) => String.fromCharCode(parseInt(hexStr, 16)));
+    return decoded;
   }
 
   // --- Module Definition ---
   return {
     // --- Module Information ---
-    id: 'mangapill',
-    name: 'MangaPill',
-    version: '1.0.1', // Start with 1.0.0, increment as needed
-    author: 'AI Assistant (Adapted for Rida)', // Or your name/handle
-    description: 'Search and read manga from MangaPill.com.',
-    supportedLanguages: ['en'],
-    isEnabled: true,
+    id: 'mangapill', // Corresponds to JSON 'id'
+    name: 'MangaPill', // Corresponds to JSON 'name'
+    version: '1.0.1', // Corresponds to JSON 'version'
+    author: 'AI Assistant (Adapted for Rida)', // Corresponds to JSON 'author'
+    description: 'Search and read manga from MangaPill.com.', // Corresponds to JSON 'description'
+    supportedLanguages: ['en'], // Corresponds to JSON 'supportedLanguages'
+    isEnabled: true,          // Corresponds to JSON 'isEnabled'
     baseURL: baseURL, // Expose baseURL for potential external use/debugging
 
     // --- Required Methods ---
@@ -78,8 +76,9 @@ const mangapillModule = (fetch) => {
         const results = [];
 
         // Regex to find search result blocks (adjust if structure changes)
-        // Captures: 1=manga path, 2=image URL, 3=title
+        // Captures: 1=manga path, 2=image URL, 3=title (from img alt), 4=title (from div)
         const itemRegex = /<a href="(\/manga\/[^"]+)"[^>]*>\s*<img[^>]+data-src="([^"]+)"[^>]*alt="([^"]+)"[^>]*>\s*<\/a>\s*<div class="mt-3 font-bold[^"]*">([^<]+)<\/div>/gi;
+
 
         const matches = extractAll(html, itemRegex);
         console.log(`Found ${matches.length} potential search results.`);
@@ -90,7 +89,7 @@ const mangapillModule = (fetch) => {
            if (match[1] && match[1].startsWith('/manga/')) {
                 const id = match[1]; // e.g., /manga/1/one-piece
                 const coverUrl = match[2]; // Usually absolute URL in data-src
-                const title = decodeEntities(match[4].trim()); // Title from the div below image
+                const title = decodeEntities(match[4].trim()); // Title from the div below image more reliable
 
                 // Description and Author are not directly available on search page
                 const description = ''; // Get full description in getBookDetails
@@ -143,18 +142,17 @@ const mangapillModule = (fetch) => {
         const title = titleMatch ? decodeEntities(titleMatch[0].trim()) : 'Unknown Title';
 
         // Cover URL (from img with data-src inside the main container)
-        // Look for an image likely the main cover, often has mb-3 class or similar context
         const coverMatch = extractFirst(html, /<img[^>]+class="[^"]*mb-3[^"]*"[^>]*data-src="([^"]+)"/i)
-                       ?? extractFirst(html, /<div class="flex flex-col sm:flex-row my-3">\s*<div>\s*<img[^>]+data-src="([^"]+)"/i); // Alternative pattern
+                       ?? extractFirst(html, /<div class="flex flex-col sm:flex-row my-3">\s*<div>\s*<img[^>]+data-src="([^"]+)"/i);
         const coverUrl = coverMatch ? coverMatch[0] : '';
 
         // Description (often in a <p> tag with specific classes)
-        const descriptionMatch = extractFirst(html, /<p class="text-sm[^"]*">\s*([^<]+)\s*<\/p>/i);
+        const descriptionMatch = extractFirst(html, /<p class="text-sm[^"]*">\s*([^<]+(?:\s+[^<]+)*)\s*<\/p>/i); // Allow spaces
         const description = descriptionMatch ? decodeEntities(descriptionMatch[0].trim()) : 'No description available.';
 
-        // Author (Attempt to find it - MangaPill structure varies)
+        // Author (Attempt to find it)
          const authorMatch = extractFirst(html, /<div>Author\(s\)<\/div>\s*<div[^>]*>([^<]+)<\/div>/i)
-                         ?? extractFirst(html, /<div>Author<\/div>\s*<div[^>]*>([^<]+)<\/div>/i); // Try singular too
+                         ?? extractFirst(html, /<div>Author<\/div>\s*<div[^>]*>([^<]+)<\/div>/i);
         const author = authorMatch ? decodeEntities(authorMatch[0].trim()) : 'N/A';
 
         // Status
@@ -186,10 +184,9 @@ const mangapillModule = (fetch) => {
                 chapters.push({
                     id: chapterId,        // Use chapter path as ID for getContent
                     title: chapterTitle,
-                    // Add other fields if needed/available (e.g., date)
                 });
             }
-            chapters.reverse(); // Typically chapters are listed newest first, reverse for reading order
+            chapters.reverse(); // Reverse for reading order
         }
 
 
@@ -199,15 +196,15 @@ const mangapillModule = (fetch) => {
           author: author,
           coverUrl: coverUrl,
           description: description,
-          genres: genres,    // Add genres array
-          status: status,    // Add status
-          type: type,        // Add type
-          chapters: chapters // Add chapters array
+          genres: genres,
+          status: status,
+          type: type,
+          chapters: chapters
         };
 
       } catch (error) {
         console.error(`Get Book Details Error for ID ${id}:`, error);
-        throw new Error(`Failed to get details for ${id}: ${error.message}`); // Throw error as per Rida guide
+        throw new Error(`Failed to get details for ${id}: ${error.message}`);
       }
     },
 
@@ -223,7 +220,7 @@ const mangapillModule = (fetch) => {
       try {
         const response = await fetch(chapterURL, {
              method: 'GET',
-             headers: { 'Referer': baseURL + '/' } // Referer might be important for images
+             headers: { 'Referer': baseURL + '/' }
         });
 
         if (!response.ok) {
@@ -233,32 +230,27 @@ const mangapillModule = (fetch) => {
         const html = await response.text();
         const pages = [];
 
-        // Regex to find page image URLs within <chapter-page> or similar structure
-        // MangaPill uses <picture><img data-src="..."></picture> inside elements for each page
-        const pageRegex = /<chapter-page[^>]*>\s*<picture>\s*<source[^>]*>\s*<img[^>]+data-src="([^"]+)"/gi;
-        // Simpler fallback if the above is too specific:
-        // const pageRegex = /<img[^>]+data-src="([^"]+)"[^>]*>/gi; // Less specific, might grab other images
+        // Regex to find page image URLs within <chapter-page> -> <picture> -> <img data-src>
+        const pageRegex = /<chapter-page[^>]*>\s*<picture(?:[^>]*\s*>\s*<source[^>]*>)*[^>]*\s*<img[^>]+data-src="([^"]+)"/gi;
 
         const matches = extractAll(html, pageRegex);
          console.log(`Found ${matches.length} potential page images.`);
 
 
         for (const match of matches) {
-            // Simple check if URL looks like an image from their CDN
-             if (match[1] && match[1].includes('mangapill')) {
+             if (match[1] && match[1].includes('mangapill')) { // Basic validation
                 pages.push(match[1]);
             }
         }
 
          if (pages.length === 0) {
              console.warn("No pages extracted using primary regex, trying fallback pattern for chapter:", id);
-             // Try a broader regex if the specific one failed
-             const fallbackPageRegex = /<img[^>]+data-src="([^"]+)"[^>]*>/gi;
+             // Fallback: Look for any data-src image that looks like a chapter page
+             const fallbackPageRegex = /<img[^>]+data-src="([^"]+)"/gi;
              const fallbackMatches = extractAll(html, fallbackPageRegex);
              console.log(`Fallback found ${fallbackMatches.length} potential images.`);
              for (const match of fallbackMatches) {
-                 // Filter more carefully for likely page images
-                 if (match[1] && match[1].includes('mangapill') && match[1].includes('/chapters/')) {
+                 if (match[1] && match[1].includes('mangapill') && /\/chapters\/\d+/.test(match[1])) { // Stricter fallback check
                      pages.push(match[1]);
                  }
              }
@@ -266,8 +258,6 @@ const mangapillModule = (fetch) => {
 
         if (pages.length === 0) {
           console.error("Could not extract any page image URLs for chapter:", id);
-          // Decide: return empty array or throw error?
-          // Let's throw, as an empty chapter is usually an error state.
            throw new Error('No page images found for this chapter.');
         }
 
@@ -276,13 +266,11 @@ const mangapillModule = (fetch) => {
 
       } catch (error) {
         console.error(`Get Content Error for ID ${id}:`, error);
-        throw new Error(`Failed to get content for ${id}: ${error.message}`); // Throw error as per Rida guide
+        throw new Error(`Failed to get content for ${id}: ${error.message}`);
       }
     }
   };
 };
 
-// If running in an environment that supports `export default` (like Rida likely does)
+// Export the module function as the default export for Rida
 export default mangapillModule;
-// Otherwise, for environments like Node.js testing, you might use:
-// module.exports = mangapillModule;
